@@ -40,16 +40,30 @@ class MultilingualPolylang {
 		 * by way of
 		 * http://wordpress.syllogic.in/2014/08/going-multi-lingual-with-polylang/
 		 */
+		
+		global $wp_query;
+		
 		$duplicated_post_ids = self::get_duplicated_posts();
 
 		$all_languages = '';
 
-		$defaults = array(
-			'lang' => $all_languages,
-			'post__not_in' => $duplicated_post_ids,
-		);
+		// Merge all original query vars with query to support CPT, Taxonomies, etc.
+		$merge_args = array_merge($wp_query->query, $wp_query->query_vars);
 
-		$args = array_merge( $defaults, $args );
+		// Overwrite specific language args
+		$merge_args['lang'] = $all_languages;
+		$merge_args['post__not_in'] = $duplicated_post_ids;
+
+		// Handle tax_query ([taxonomy] => language) arguments
+		if(isset($merge_args['tax_query'])) {
+			$needle = self::getIndex( 'taxonomy', 'language', $merge_args['tax_query'] );
+			if ( $needle !== null ) {
+				unset( $merge_args['tax_query'][ $needle ] );
+			}
+		}
+
+		// Give the possibility to overwrite the $args
+		$args = array_merge( $merge_args, $args );
 
 		return new WP_Query( $args );
 	}
@@ -104,6 +118,7 @@ class MultilingualPolylang {
 		return $trans_post[ self::$current_language ] != 0;
 	}
 	
+<<<<<<< HEAD
 	private static function rebuild_url( $url, $add ) {
 		$parsed_url = parse_url($url);
 
@@ -118,6 +133,14 @@ class MultilingualPolylang {
 		$fragment = isset($parsed_url['fragment']) ? '#' . $parsed_url['fragment'] : '';
 
 		return $scheme . $user . $pass . $host . $port . $add . $path . $query . $fragment; 
+=======
+	private static function getIndex($needle, $name, $array) {
+		foreach($array as $key => $value){
+			if(is_array($value) && $value[$needle] == $name)
+				return $key;
+		}
+		return null;
+>>>>>>> origin/patch-3
 	}
 }
 
